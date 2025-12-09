@@ -14,6 +14,7 @@ pub fn run() {
             commands::greet,
             commands::get_image_metadata,
             commands::save_images,
+            commands::check_file_exists,
             commands::list_directory,
             commands::get_home_directory,
             commands::get_parent_directory

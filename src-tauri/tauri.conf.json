@@ -30,9 +30,9 @@
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
-      "icons/ikoniexp@2x.png",
-      "icons/ikoniexp@2x.icns",
-      "icons/ikoniexp@2x.ico"
+      "icons/icon.png",
+      "icons/icon@2x.icns",
+      "icons/icon@2x.ico"
     ]
   }
 }

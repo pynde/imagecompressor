@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import type { OutputFormat } from "./FormatSettings";
 import { FolderPicker } from "./FolderPicker";
+import { SaveOptionsModal, ImageSaveRequest } from "./SaveOptionsModal";
 
 interface ImageToSave {
     path: string;
@@ -20,7 +21,6 @@ interface SaveProps {
 interface SaveResult {
     success: boolean;
     saved_count: number;
-    destination_path: string;
 }
 
 export function Save(props: SaveProps) {
@@ -28,39 +28,39 @@ export function Save(props: SaveProps) {
     const [savedPath, setSavedPath] = createSignal<string | null>(null);
     const [error, setError] = createSignal<string | null>(null);
     const [showFolderPicker, setShowFolderPicker] = createSignal(false);
+    const [showSaveOptions, setShowSaveOptions] = createSignal(false);
+    const [selectedFolder, setSelectedFolder] = createSignal<string>("");
 
     const handleSave = () => {
         setShowFolderPicker(true);
     };
 
-    const handleFolderSelected = async (selectedPath: string | string[]) => {
+    const handleFolderSelected = (selectedPath: string | string[]) => {
         // Since we are in folder mode, selectedPath should always be a string
         if (Array.isArray(selectedPath)) {
             console.warn("Unexpected array path in folder mode:", selectedPath);
             selectedPath = selectedPath[0];
         }
 
+        setSelectedFolder(selectedPath);
         setShowFolderPicker(false);
+        setShowSaveOptions(true);
+    };
+
+    const handleSaveConfirmed = async (finalImages: any[]) => {
+        setShowSaveOptions(false);
 
         try {
             setError(null);
             setIsSaving(true);
-
-            const imagesToSave = props.images.map((img) => ({
-                path: img.path,
-                target_width: img.targetWidth,
-                target_height: img.targetHeight,
-                output_format: img.outputFormat,
-                quality: img.quality,
-            }));
+            setSavedPath(null);
 
             const result = await invoke<SaveResult>("save_images", {
-                images: imagesToSave,
-                destinationFolder: selectedPath,
+                images: finalImages,
             });
 
             if (result.success) {
-                setSavedPath(result.destination_path);
+                setSavedPath(selectedFolder());
             }
         } catch (err) {
             console.error("Error saving images:", err);
@@ -83,12 +83,32 @@ export function Save(props: SaveProps) {
         }
     };
 
+    // Convert props.images to ImageSaveRequest format for the modal
+    const getImagesForModal = (): ImageSaveRequest[] => {
+        return props.images.map(img => ({
+            sourcePath: img.path,
+            targetWidth: img.targetWidth,
+            targetHeight: img.targetHeight,
+            outputFormat: img.outputFormat,
+            quality: img.quality
+        }));
+    };
+
     return (
         <>
             <Show when={showFolderPicker()}>
                 <FolderPicker
                     onSelect={handleFolderSelected}
                     onCancel={() => setShowFolderPicker(false)}
+                />
+            </Show>
+
+            <Show when={showSaveOptions()}>
+                <SaveOptionsModal
+                    images={getImagesForModal()}
+                    targetFolder={selectedFolder()}
+                    onConfirm={handleSaveConfirmed}
+                    onCancel={() => setShowSaveOptions(false)}
                 />
             </Show>
 
